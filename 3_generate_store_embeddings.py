@@ -1,5 +1,7 @@
 from sentence_transformers import SentenceTransformer
 import json
+import faiss
+import numpy as np
 
 # Load the JSON file with district data
 with open('resources_data.json', 'r') as f:
@@ -21,8 +23,22 @@ model = SentenceTransformer('all-MiniLM-L6-v2')
 # Generate embeddings
 embeddings = model.encode(descriptions)
 
-# Store embeddings
-with open('district_embeddings.json', 'w') as f:
-    json.dump(embeddings.tolist(), f)  # Convert numpy array to list for JSON compatibility
+# Convert embeddings to numpy array for FAISS
+embeddings_np = np.array(embeddings)
 
-print("Embeddings have been saved to 'district_embeddings.json'.")
+# Create a FAISS index
+index = faiss.IndexFlatL2(len(embeddings[0]))
+
+# Add embeddings to the index
+index.add(embeddings_np)
+
+# Store embeddings and their metadata in JSON format
+embedding_data = {
+    'metadata': [{'dist_name': district['properties'].get('dist_name', 'Unknown'), 'dist_code': district['properties'].get('dist_code', 'Unknown')} for district in districts_data],
+    'embeddings': embeddings_np.tolist()  # Convert numpy array to list for JSON compatibility
+}
+
+with open('district_embeddings_with_metadata.json', 'w') as f:
+    json.dump(embedding_data, f, indent=4)
+
+print("Embeddings and their metadata have been stored in 'district_embeddings_with_metadata.json'.")
