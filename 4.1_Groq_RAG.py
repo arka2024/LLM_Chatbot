@@ -1,7 +1,7 @@
-from sentence_transformers import SentenceTransformer
 import json
-import faiss
+import requests
 import numpy as np
+import faiss
 
 # Load the JSON file with district data
 with open('resources_data.json', 'r') as f:
@@ -10,7 +10,7 @@ with open('resources_data.json', 'r') as f:
 # Extract features from JSON
 districts_data = data.get('features', [])
 
-# Load embeddings and metadata
+# Load metadata and embeddings (assuming these are stored as a list of lists)
 with open('district_embeddings_with_metadata.json', 'r') as f:
     embedding_data = json.load(f)
 
@@ -23,12 +23,15 @@ index = faiss.IndexFlatL2(len(embeddings_np[0]))
 # Add embeddings to the index
 index.add(embeddings_np)
 
-# Load the Sentence Transformer model
-model = SentenceTransformer('all-MiniLM-L6-v2')
-
 # User's query
-query = "Which districts have temp less than 15."
-query_embedding = model.encode(query)
+query = "I need information on districts with high water reserves and medkits."
+
+# Generate query embedding using Groq
+query_response = requests.post(
+    "https:///embedding",
+    json={"text": query}
+)
+query_embedding = np.array(query_response.json()['embedding'])
 
 # Find the most similar embeddings
 D, I = index.search(query_embedding.reshape(1, -1), k=5)  # 'k' is the number of nearest neighbors to retrieve
